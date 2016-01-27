@@ -6,11 +6,11 @@
 
     <groupId>com.github.roman_grytsay</groupId>
     <artifactId>cucumber-rocky</artifactId>
-    <version>0.1</version>
+    <version>0.2</version>
     <packaging>jar</packaging>
 
     <name>Rocky</name>
-    <url>https://jitpack.io/#roman_grytsay/cucumber-rocky/0.1</url>
+    <url>https://jitpack.io/#roman_grytsay/cucumber-rocky/0.2</url>
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
