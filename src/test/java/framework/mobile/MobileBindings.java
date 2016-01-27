@@ -135,10 +135,6 @@ public abstract class MobileBindings extends Bindings {
         }
     }
 
-    protected void sendKeyFromKeyboard(int keyNumber) {
-        getDriverInstance().sendKeyEvent(keyNumber);
-    }
-
     protected void clearText(String el) {
         getElement(el).clear();
     }
