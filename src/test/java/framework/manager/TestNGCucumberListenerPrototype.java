@@ -8,7 +8,7 @@ import org.testng.annotations.ITestAnnotation;
 import org.testng.annotations.Test;
 import test.java.framework.ManagerPrototype;
 import test.java.framework.SessionPrototype;
-import test.java.framework.helpers.APICucumberHelper;
+import test.java.framework.helpers.CucumberHelperPrototype;
 import test.java.framework.helpers.OptionalSteps;
 import test.java.framework.manager.cucumber.api.CucumberOptions;
 import test.java.framework.manager.cucumber.runtime.RuntimeOptions;
@@ -77,7 +77,7 @@ public abstract class TestNGCucumberListenerPrototype implements IHookable, IAnn
         annotation.setThreadPoolSize(threadCount);
     }
 
-    protected abstract APICucumberHelper getCucumberHelper();
+    protected abstract CucumberHelperPrototype getCucumberHelper();
 
     protected abstract OptionalSteps getCucumberOptionalSteps();
 

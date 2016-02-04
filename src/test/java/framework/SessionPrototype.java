@@ -1,7 +1,6 @@
 package test.java.framework;
 
 import org.openqa.selenium.WebDriver;
-import test.java.framework.web.LangPrototype;
 
 import java.io.UnsupportedEncodingException;
 import java.util.Locale;

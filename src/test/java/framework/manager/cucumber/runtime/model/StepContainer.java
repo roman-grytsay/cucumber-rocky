@@ -5,7 +5,7 @@ import gherkin.formatter.Reporter;
 import gherkin.formatter.model.BasicStatement;
 import gherkin.formatter.model.DataTableRow;
 import gherkin.formatter.model.Step;
-import test.java.framework.helpers.APICucumberHelper;
+import test.java.framework.helpers.CucumberHelperPrototype;
 import test.java.framework.helpers.OptionalSteps;
 import test.java.framework.manager.cucumber.runtime.Runtime;
 
@@ -17,7 +17,7 @@ public class StepContainer {
     private List<Step> steps = new ArrayList<>();
     final CucumberFeature cucumberFeature;
     private final BasicStatement statement;
-    private static APICucumberHelper helper;
+    private static CucumberHelperPrototype helper;
     private static OptionalSteps optionalSteps;
 
     StepContainer(CucumberFeature cucumberFeature, BasicStatement statement) {
@@ -25,7 +25,7 @@ public class StepContainer {
         this.statement = statement;
     }
 
-    public static void setCucumberHelper(APICucumberHelper helper) {
+    public static void setCucumberHelper(CucumberHelperPrototype helper) {
         StepContainer.helper = helper;
     }
 

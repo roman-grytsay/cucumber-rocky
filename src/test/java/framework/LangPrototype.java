@@ -1,4 +1,4 @@
-package test.java.framework.web;
+package test.java.framework;
 
 public interface LangPrototype {
 

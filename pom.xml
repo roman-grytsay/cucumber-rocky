@@ -4,13 +4,13 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
-    <groupId>com.github.roman_grytsay</groupId>
+    <groupId>com.github.roman-grytsay</groupId>
     <artifactId>cucumber-rocky</artifactId>
-    <version>0.2</version>
+    <version>0.3</version>
     <packaging>jar</packaging>
 
     <name>Rocky</name>
-    <url>https://jitpack.io/#roman_grytsay/cucumber-rocky/0.2</url>
+    <url>https://jitpack.io/#roman-grytsay/cucumber-rocky/0.3</url>
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
