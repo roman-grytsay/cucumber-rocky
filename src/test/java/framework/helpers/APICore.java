@@ -18,20 +18,36 @@ import static com.jayway.restassured.config.RestAssuredConfig.newConfig;
 
 public abstract class APICore extends Bindings {
 
+    public APICore(SessionPrototype instance) {
+        super(instance);
+    }
+
 //======================================================================================================================
 //Properties
 
     private ExtractableResponse<Response> lastResponse = null;
-    protected String lastRequest = null;
+    private String lastRequest = null;
     private Map<String, String> lastRequestParams = null;
     private String phpSessionId = null;
-    protected static String sessionKey = "session.id";
+    private static String sessionKey = "session.id";
 
 //======================================================================================================================
 //Methods
 
-    public APICore(SessionPrototype instance) {
-        super(instance);
+    public ExtractableResponse<Response> getLastResponse() {
+        return lastResponse;
+    }
+
+    public String getSessionKey() {
+        return sessionKey;
+    }
+
+    public void setPhpSessionId(String phpSessionId) {
+        this.phpSessionId = phpSessionId;
+    }
+
+    public String getLastResponseBody() {
+        return lastResponse.response().body().asString();
     }
 
     /**
@@ -492,10 +508,6 @@ public abstract class APICore extends Bindings {
         } catch (Exception ignored) {
             return false;
         }
-    }
-
-    public String getLastResponseBody() {
-        return lastResponse.response().body().asString();
     }
 
 }
