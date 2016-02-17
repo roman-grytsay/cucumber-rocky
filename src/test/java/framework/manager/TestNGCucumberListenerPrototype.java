@@ -62,7 +62,7 @@ public abstract class TestNGCucumberListenerPrototype implements IHookable, IAnn
 
     @Override
     public void run(IHookCallBack iHookCallBack, ITestResult iTestResult) {
-        getManager().loadProperties();
+        getManager().setUpNoBrowser();
         iHookCallBack.runTestMethod(iTestResult);
     }
 

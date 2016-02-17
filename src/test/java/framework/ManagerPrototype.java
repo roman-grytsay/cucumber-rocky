@@ -15,6 +15,7 @@ import org.openqa.selenium.ie.InternetExplorerDriver;
 import org.openqa.selenium.remote.CapabilityType;
 import org.openqa.selenium.remote.DesiredCapabilities;
 import org.openqa.selenium.remote.RemoteWebDriver;
+import org.testng.Assert;
 import test.java.framework.helpers.CommonHelper;
 
 import java.io.File;
@@ -26,7 +27,6 @@ import java.net.URL;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Properties;
-import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.TimeUnit;
 
 public abstract class ManagerPrototype {
@@ -37,10 +37,6 @@ public abstract class ManagerPrototype {
     //Flag for loading properties
     private static Boolean isFirstLoad = true;
 
-    //Users pool
-    private static ArrayBlockingQueue<User> users = new ArrayBlockingQueue<>(100);
-
-    private static final Object usersLock = new Object();
     private static final Object propertiesLock = new Object();
 
     private SessionPrototype session;
@@ -49,7 +45,8 @@ public abstract class ManagerPrototype {
     //Number of tries to launch browser
     private int tries = 0;
 
-    protected static String HTTP = "http://";
+    protected static final String HTTP = "http://";
+    protected static final String HUB_PART_URL = "/wd/hub";
 
 //======================================================================================================================
 //Setters, getters
@@ -82,6 +79,10 @@ public abstract class ManagerPrototype {
 
     public void setSession(SessionPrototype session) {
         this.session = session;
+    }
+
+    public SessionPrototype getSession() {
+        return this.session;
     }
 
 //======================================================================================================================
@@ -117,9 +118,6 @@ public abstract class ManagerPrototype {
         //All threads wait for properties to load
         loadProperties();
 
-        //Set username, password and user ids
-        setupSessionUser();
-
         //Init WebDriver session
         setCurrentSession(session);
         return session;
@@ -129,8 +127,7 @@ public abstract class ManagerPrototype {
         try {
             launchDriver();
         } catch (MalformedURLException e) {
-            System.err.println("Domain name / URL provided is invalid!\n".concat(e.getMessage()));
-            System.exit(1);
+            fail("Domain name / URL provided is invalid!\n".concat(e.getMessage()));
         }
     }
 
@@ -154,11 +151,8 @@ public abstract class ManagerPrototype {
         } catch (Throwable e) {
             StringWriter errors = new StringWriter();
             e.printStackTrace(new PrintWriter(errors));
-            System.err.println(String.format(
-                    "Failed to authenticate url: %s\n\n%s\n\n%s",
-                    url, e.getMessage(), errors.toString()
-            ));
-            System.exit(1);
+            fail(String.format("Failed to authenticate url: %s\n\n%s\n\n%s",
+                    url, e.getMessage(), errors.toString()));
         }
     }
 
@@ -172,7 +166,9 @@ public abstract class ManagerPrototype {
      */
     public void loadProperties() {
         synchronized (propertiesLock) {
-            if (!isFirstLoad) return;
+            if (!isFirstLoad) {
+                return;
+            }
             isFirstLoad = false;
 
             Properties props;
@@ -180,8 +176,7 @@ public abstract class ManagerPrototype {
                 props = CommonHelper.readConfig();
             } catch (Exception e) {
                 e.printStackTrace();
-                System.err.println(e.getMessage());
-                System.exit(1);
+                fail(e.getMessage());
                 return;
             }
 
@@ -191,8 +186,7 @@ public abstract class ManagerPrototype {
             } catch (Exception e) {
                 String errMsg = "Incorrect client value specified in the config file: '%s'\n" +
                         "Should be one of these: %s\n\n";
-                System.err.println(String.format(errMsg, clientName, Arrays.asList(Client.values())) + e.getMessage());
-                System.exit(1);
+                fail(String.format(errMsg, clientName, Arrays.asList(Client.values())) + e.getMessage());
             }
 
             SessionPrototype.setUsersCount(Integer.valueOf(CommonHelper.getProperty(props, "usersCount", "1")));
@@ -205,7 +199,7 @@ public abstract class ManagerPrototype {
 
             String appiumServer = SessionPrototype.isGrid() ?
                     SessionPrototype.getSeleniumHub() : CommonHelper.getProperty(props, "appiumServer");
-            SessionPrototype.setAppiumServer(HTTP + appiumServer + "/wd/hub");
+            SessionPrototype.setAppiumServer(HTTP + appiumServer + HUB_PART_URL);
 
             SessionPrototype.setPathToApp(CommonHelper.getProperty(props, "pathToApp"));
             SessionPrototype.setClientOSVersion(CommonHelper.getProperty(props, "version"));
@@ -273,7 +267,7 @@ public abstract class ManagerPrototype {
     protected void startInternetExplorer() throws MalformedURLException {
         if (SessionPrototype.isGrid()) {
             DesiredCapabilities cap = DesiredCapabilities.internetExplorer();
-            session.setDriverInstance(new RemoteWebDriver(new URL(HTTP + SessionPrototype.getSeleniumHub() + "/wd/hub"), cap));
+            session.setDriverInstance(new RemoteWebDriver(new URL(HTTP + SessionPrototype.getSeleniumHub() + HUB_PART_URL), cap));
         } else {
             session.setDriverInstance(new InternetExplorerDriver());
         }
@@ -285,7 +279,7 @@ public abstract class ManagerPrototype {
     protected void startChrome() throws MalformedURLException {
         if (SessionPrototype.isGrid()) {
             DesiredCapabilities cap = DesiredCapabilities.chrome();
-            session.setDriverInstance(new RemoteWebDriver(new URL(HTTP + SessionPrototype.getSeleniumHub() + "/wd/hub"), cap));
+            session.setDriverInstance(new RemoteWebDriver(new URL(HTTP + SessionPrototype.getSeleniumHub() + HUB_PART_URL), cap));
         } else {
             session.setDriverInstance(new ChromeDriver());
         }
@@ -301,8 +295,7 @@ public abstract class ManagerPrototype {
         try {
             profile = buildFirefoxProfile();
         } catch (Exception e) {
-            System.err.println("Failed to create Firefox profile!\n" + e.getMessage());
-            System.exit(1);
+            fail("Failed to create Firefox profile!\n" + e.getMessage());
         }
         try {
             if (SessionPrototype.isGrid()) {
@@ -310,7 +303,7 @@ public abstract class ManagerPrototype {
                 DesiredCapabilities cap = DesiredCapabilities.firefox();
                 cap.setCapability(FirefoxDriver.PROFILE, profile);
 
-                session.setDriverInstance(new RemoteWebDriver(new URL(HTTP + SessionPrototype.getSeleniumHub() + "/wd/hub"), cap));
+                session.setDriverInstance(new RemoteWebDriver(new URL(HTTP + SessionPrototype.getSeleniumHub() + HUB_PART_URL), cap));
 
             } else if (SystemUtils.IS_OS_LINUX) {
 
@@ -332,16 +325,14 @@ public abstract class ManagerPrototype {
             if (++tries < 3) {
                 startFirefox();
             } else {
-                System.err.println("Failed to launch browser after " + tries + " tries! " + e.getMessage());
+                fail("Failed to launch browser after " + tries + " tries! " + e.getMessage());
             }
-            System.exit(1);
         } catch (IOException e) {
-            System.err.println("Failed to launch browser!" + e.getMessage());
-            System.exit(1);
+            fail("Failed to launch browser!" + e.getMessage());
         }
     }
 
-    protected FirefoxProfile buildFirefoxProfile() throws Exception {
+    protected FirefoxProfile buildFirefoxProfile() throws IOException {
 
         FirefoxProfile profile = new FirefoxProfile();
 
@@ -420,5 +411,27 @@ public abstract class ManagerPrototype {
         session.getDriverInstance().manage().deleteAllCookies();
     }
 
+    /**
+     * Pause test for <pause> seconds
+     * Avoid using it unless it's really unavoidable
+     * Suggesting usage of waitForElement/waitForElementNotPresent/isElementPresent etc. instead
+     *
+     * @param pause time to wait in seconds
+     */
+    protected void sleep(int pause) {
+        try {
+            Thread.sleep(pause * 1000);
+        } catch (InterruptedException ignored) {
+        }
+    }
+
+    /**
+     * Marks test as failed and stops test running with the provided message
+     *
+     * @param errorMessage error message to throw
+     */
+    protected void fail(String errorMessage) {
+        Assert.fail(errorMessage);
+    }
 
 }
