@@ -17,6 +17,7 @@ import org.openqa.selenium.remote.DesiredCapabilities;
 import org.openqa.selenium.remote.RemoteWebDriver;
 import org.testng.Assert;
 import test.java.framework.helpers.CommonHelper;
+import test.java.framework.helpers.CucumberHelperPrototype;
 
 import java.io.File;
 import java.io.IOException;
@@ -84,6 +85,14 @@ public abstract class ManagerPrototype {
     public SessionPrototype getSession() {
         return this.session;
     }
+
+    /**
+     * Has to be overridden to return CucumberHelper to be used for step replacement before scenarios run
+     * CucumberHelper has to extend CucumberHelperPrototype
+     *
+     * @return new instance of CucumberHelper
+     */
+    public abstract CucumberHelperPrototype getNewCucumberHelper();
 
 //======================================================================================================================
 //Setting up, reading config, etc

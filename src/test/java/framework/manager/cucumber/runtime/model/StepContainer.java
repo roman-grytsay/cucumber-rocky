@@ -5,6 +5,7 @@ import gherkin.formatter.Reporter;
 import gherkin.formatter.model.BasicStatement;
 import gherkin.formatter.model.DataTableRow;
 import gherkin.formatter.model.Step;
+import test.java.framework.ManagerPrototype;
 import test.java.framework.helpers.CucumberHelperPrototype;
 import test.java.framework.helpers.OptionalSteps;
 import test.java.framework.manager.cucumber.runtime.Runtime;
@@ -17,7 +18,8 @@ public class StepContainer {
     private List<Step> steps = new ArrayList<>();
     final CucumberFeature cucumberFeature;
     private final BasicStatement statement;
-    private static CucumberHelperPrototype helper;
+    private CucumberHelperPrototype helper;
+    private static ManagerPrototype manager;
     private static OptionalSteps optionalSteps;
 
     StepContainer(CucumberFeature cucumberFeature, BasicStatement statement) {
@@ -25,8 +27,8 @@ public class StepContainer {
         this.statement = statement;
     }
 
-    public static void setCucumberHelper(CucumberHelperPrototype helper) {
-        StepContainer.helper = helper;
+    public static void setManager(ManagerPrototype manager) {
+        StepContainer.manager = manager;
     }
 
     public static void setOptionalSteps(OptionalSteps optionalSteps) {
@@ -43,6 +45,8 @@ public class StepContainer {
 
     void format(Formatter formatter) {
         statement.replay(formatter);
+
+        helper = manager.getNewCucumberHelper();
 
         List<Step> formattedSteps = new ArrayList<>();
         List<String> exAttr = null;

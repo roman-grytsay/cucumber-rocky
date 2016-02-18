@@ -8,7 +8,6 @@ import org.testng.annotations.ITestAnnotation;
 import org.testng.annotations.Test;
 import test.java.framework.ManagerPrototype;
 import test.java.framework.SessionPrototype;
-import test.java.framework.helpers.CucumberHelperPrototype;
 import test.java.framework.helpers.OptionalSteps;
 import test.java.framework.manager.cucumber.api.CucumberOptions;
 import test.java.framework.manager.cucumber.runtime.RuntimeOptions;
@@ -20,6 +19,8 @@ import java.util.Arrays;
 
 @CucumberOptions
 public abstract class TestNGCucumberListenerPrototype implements IHookable, IAnnotationTransformer {
+
+    private ManagerPrototype manager;
 
     /**
      * Options:
@@ -42,7 +43,7 @@ public abstract class TestNGCucumberListenerPrototype implements IHookable, IAnn
     @Test(priority = 5, groups = "cucumber", description = "Runs Cucumber Features")
     public void runCukes() {
 
-        StepContainer.setCucumberHelper(getCucumberHelper());
+        StepContainer.setManager(manager);
         StepContainer.setOptionalSteps(getCucumberOptionalSteps());
 
         String client = SessionPrototype.isMobile() ? "mobile" : "web";
@@ -62,7 +63,8 @@ public abstract class TestNGCucumberListenerPrototype implements IHookable, IAnn
 
     @Override
     public void run(IHookCallBack iHookCallBack, ITestResult iTestResult) {
-        getManager().setUpNoBrowser();
+        manager = getManager();
+        manager.setUpNoBrowser();
         iHookCallBack.runTestMethod(iTestResult);
     }
 
@@ -76,8 +78,6 @@ public abstract class TestNGCucumberListenerPrototype implements IHookable, IAnn
         annotation.setInvocationCount(threadCount);
         annotation.setThreadPoolSize(threadCount);
     }
-
-    protected abstract CucumberHelperPrototype getCucumberHelper();
 
     protected abstract OptionalSteps getCucumberOptionalSteps();
 
