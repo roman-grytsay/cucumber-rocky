@@ -1,6 +1,5 @@
 package test.java.framework;
 
-import com.google.common.collect.Sets;
 import org.apache.commons.io.FileUtils;
 import org.openqa.selenium.*;
 import org.openqa.selenium.interactions.Actions;
@@ -13,7 +12,10 @@ import test.java.framework.helpers.CommonHelper;
 import test.java.framework.manager.SoftAssertionError;
 
 import java.io.File;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
 import java.util.stream.Collectors;
 
 /**
@@ -68,29 +70,29 @@ public abstract class Bindings {
      * @return webdriver handle
      */
     protected WebDriver getDriverInstance() {
+
         StackTraceElement[] stackTraceElements = Thread.currentThread().getStackTrace();
         String methodName = "";
+
         for (int i = 0; i < stackTraceElements.length; i++) {
             if (stackTraceElements[i].isNativeMethod()) {
                 methodName = stackTraceElements[i - 2].getMethodName();
                 break;
             }
         }
-        //Abort if calling this method directly
+        //Abort if calling this method directly from page objects etc
         if (methodName.contains("getDriverInstance")) {
-            System.err.println("getDriverInstance() method (WebDriver instance) should be accessed via wrappers/bindings only!\n" +
-                    Arrays.toString(stackTraceElements).replaceAll(", ", "\n"));
-            System.exit(1);
-            return null;
-        } else {
-            return session.getDriverInstance();
+            String errMsg = "getDriverInstance() method (WebDriver instance) " +
+                    "should be accessed via wrappers/bindings only!\n%s";
+            fail(String.format(errMsg, Arrays.toString(stackTraceElements).replaceAll(", ", "\n")), false);
         }
+        return session.getDriverInstance();
     }
 
     /**
-     * Takes screenshot of current page.
+     * Takes screenshot of current page
      *
-     * @param fileName name to give for screenshot.
+     * @param fileName name to give for screenshot
      * @return url (or path for local machine) to saved screenshot
      */
     protected String takeScreenshot(String fileName) {
@@ -103,7 +105,9 @@ public abstract class Bindings {
             File tempFile = driver.getScreenshotAs(OutputType.FILE);
 
             //Name and save file
-            String path = String.format("%s%s/%s.png", CommonHelper.getScreenshotsDir(), this.getClass().getName(), fileName);
+            String path = String.format("%s%s/%s.png",
+                    CommonHelper.getScreenshotsDir(), this.getClass().getName(), fileName);
+
             File screenShotFile = new File(path);
             FileUtils.copyFile(tempFile, screenShotFile);
 
@@ -111,7 +115,7 @@ public abstract class Bindings {
             return "SCREENSHOT: " + CommonHelper.getFileUrl(path);
 
         } catch (NullPointerException e) {
-            return "No screenshot available.";
+            return "Taking screenshot failed!";
         } catch (Exception e) {
             //Suppress exception no need to fail test
             return e.getMessage();
@@ -136,8 +140,9 @@ public abstract class Bindings {
     protected By byLocator(final String locator) {
         int index = locator.indexOf('=');
         String errMsg = "Invalid locator identifier: " + locator;
-        if (index == -1) fail(errMsg);
-
+        if (index == -1) {
+            fail(errMsg);
+        }
         String prefix = locator.substring(0, index);
         String suffix = locator.substring(index + 1);
 
@@ -175,15 +180,15 @@ public abstract class Bindings {
     }
 
     /**
-     * @param locator          locator of element in xpath=locator; css=locator etc
-     * @param screenShotOnFail make screenshot on failed attempt
+     * @param locator              locator of element in xpath=locator; css=locator etc
+     * @param takeScreenShotOnFail make screenshot on failed attempt
      * @return found WebElement
      */
-    protected WebElement getElement(final String locator, boolean screenShotOnFail) {
+    protected WebElement getElement(final String locator, boolean takeScreenShotOnFail) {
         try {
             return getDriverInstance().findElement(byLocator(locator));
         } catch (Exception e) {
-            if (screenShotOnFail) {
+            if (takeScreenShotOnFail) {
                 fail(e.getMessage());
             }
             throw e;
@@ -202,16 +207,18 @@ public abstract class Bindings {
     }
 
     /**
-     * @param we               webElement handle for which subElement would be found
-     * @param locator          locator of subElement in xpath=locator; css=locator etc
-     * @param screenShotOnFail make screenshot on failed attempt
+     * @param we                   webElement handle for which subElement would be found
+     * @param locator              locator of subElement in xpath=locator; css=locator etc
+     * @param takeScreenShotOnFail make screenshot on failed attempt
      * @return found WebElement
      */
-    protected WebElement getElement(final WebElement we, final String locator, boolean screenShotOnFail) {
+    protected WebElement getElement(final WebElement we, final String locator, boolean takeScreenShotOnFail) {
         try {
             return we.findElement(byLocator(locator));
         } catch (Exception e) {
-            if (screenShotOnFail) fail(e.getMessage());
+            if (takeScreenShotOnFail) {
+                fail(e.getMessage());
+            }
             throw e;
         }
     }
@@ -243,11 +250,13 @@ public abstract class Bindings {
      * @param locator locator of element in xpath=locator; css=locator etc
      * @return List of webelements
      */
-    protected List<WebElement> getElements(final String locator, boolean screenShotOnFail) {
+    protected List<WebElement> getElements(final String locator, boolean takeScreenShotOnFail) {
         try {
             return getDriverInstance().findElements(byLocator(locator));
         } catch (Exception e) {
-            if (screenShotOnFail) fail(e.getMessage());
+            if (takeScreenShotOnFail) {
+                fail(e.getMessage());
+            }
             throw e;
         }
     }
@@ -264,16 +273,18 @@ public abstract class Bindings {
     }
 
     /**
-     * @param we               webElement handle for which subElement would be found
-     * @param locator          locator of subElement in xpath=locator; css=locator etc
-     * @param screenShotOnFail make screenshot on failed attempt
+     * @param we                   webElement handle for which subElement would be found
+     * @param locator              locator of subElement in xpath=locator; css=locator etc
+     * @param takeScreenShotOnFail make screenshot on failed attempt
      * @return list of founded WebElement
      */
-    protected List<WebElement> getElements(final WebElement we, final String locator, boolean screenShotOnFail) {
+    protected List<WebElement> getElements(final WebElement we, final String locator, boolean takeScreenShotOnFail) {
         try {
             return we.findElements(byLocator(locator));
         } catch (Exception e) {
-            if (screenShotOnFail) fail(e.getMessage());
+            if (takeScreenShotOnFail) {
+                fail(e.getMessage());
+            }
             throw e;
         }
     }
@@ -342,7 +353,7 @@ public abstract class Bindings {
             return ((JavascriptExecutor) getDriverInstance()).executeScript(script, params);
         } catch (Exception e) {
             fail(e.getMessage());
-            return null;
+            throw e;
         }
     }
 
@@ -353,55 +364,77 @@ public abstract class Bindings {
      * @param throughDefault true to switch to defaultContent first;
      */
     protected void switchToFrame(WebElement we, boolean throughDefault) {
-        if (throughDefault) switchToDefault();
-        getDriverInstance().switchTo().frame(we);
+        if (throughDefault) {
+            switchToDefaultFrame();
+        }
+        try {
+            getDriverInstance().switchTo().frame(we);
+        } catch (Exception e) {
+            fail(e.getMessage());
+        }
     }
 
     /**
-     * Switches to the frame of specified locator
+     * Switches to the frame of specified webElement
+     *
+     * @param we frame webElement to switch to, bypassing default content
+     */
+    protected void switchToFrame(final WebElement we) {
+        switchToFrame(we, false);
+    }
+
+    /**
+     * Switches to the frame with specified name
      *
      * @param frameName      name of the frame
-     * @param throughDefault true to switch to defaultContent first;
+     * @param throughDefault true to switch to defaultContent first
      */
     protected void switchToFrame(String frameName, boolean throughDefault) {
-        if (throughDefault) switchToDefault();
-        getDriverInstance().switchTo().frame(frameName);
+        if (throughDefault) {
+            switchToDefaultFrame();
+        }
+        try {
+            getDriverInstance().switchTo().frame(frameName);
+        } catch (Exception e) {
+            fail(e.getMessage());
+        }
+    }
+
+    /**
+     * Switches to the frame with specified name
+     *
+     * @param frameName name of the frame to switch to, bypassing default content
+     */
+    protected void switchToFrame(final String frameName) {
+        switchToFrame(frameName, false);
     }
 
     /**
      * Switches to the frame with specified index
      *
-     * @param frameIndex     frame index (starting from 0)
+     * @param frameIndex     frame index, starting from 0
      * @param throughDefault true to switch to defaultContent first;
      */
     protected void switchToFrame(int frameIndex, boolean throughDefault) {
-        if (throughDefault) switchToDefault();
-        getDriverInstance().switchTo().frame(frameIndex);
+        if (throughDefault) {
+            switchToDefaultFrame();
+        }
+        try {
+            getDriverInstance().switchTo().frame(frameIndex);
+        } catch (Exception e) {
+            fail(e.getMessage());
+        }
     }
 
     /**
-     * Switches to the frame of specified locator
-     *
-     * @param we frame webElement to switch to bypass default content
+     * Switches to default content (frame)
      */
-    protected void switchToFrame(WebElement we) {
-        switchToFrame(we, false);
-    }
-
-    /**
-     * Switches to the frame of specified locator
-     *
-     * @param locator frame locator to switch to bypass default content
-     */
-    protected void switchToFrame(String locator) {
-        switchToFrame(getElement(locator), false);
-    }
-
-    /**
-     * Switches to default content (can be used after switching to another frames)
-     */
-    protected void switchToDefault() {
-        getDriverInstance().switchTo().defaultContent();
+    protected void switchToDefaultFrame() {
+        try {
+            getDriverInstance().switchTo().defaultContent();
+        } catch (Exception e) {
+            fail(e.getMessage());
+        }
     }
 
     /**
@@ -410,7 +443,11 @@ public abstract class Bindings {
      * @return Source of the current page
      */
     protected String getSource() {
-        return getDriverInstance().getPageSource();
+        try {
+            return getDriverInstance().getPageSource();
+        } catch (Exception e) {
+            return "Failed to get page source!\n" + e.getMessage();
+        }
     }
 
     /**
@@ -418,21 +455,34 @@ public abstract class Bindings {
      */
     protected void alertAccept() {
         sleep(1);
-        getDriverInstance().switchTo().alert().accept();
+        try {
+            getDriverInstance().switchTo().alert().accept();
+        } catch (Exception e) {
+            fail(e.getMessage());
+        }
     }
 
     /**
      * Clicks "Cancel" in the alert window
      */
     protected void alertDismiss() {
-        getDriverInstance().switchTo().alert().dismiss();
+        try {
+            getDriverInstance().switchTo().alert().dismiss();
+        } catch (Exception e) {
+            fail(e.getMessage());
+        }
     }
 
     /**
      * Gets alert message text
      */
     protected String getAlertText() {
-        return getDriverInstance().switchTo().alert().getText();
+        try {
+            return getDriverInstance().switchTo().alert().getText();
+        } catch (Exception e) {
+            fail(e.getMessage());
+            throw e;
+        }
     }
 
     /**
@@ -474,7 +524,11 @@ public abstract class Bindings {
      * @param we webElement to click
      */
     protected void contextClick(final WebElement we) {
-        new Actions(getDriverInstance()).contextClick(we).perform();
+        try {
+            new Actions(getDriverInstance()).contextClick(we).perform();
+        } catch (Exception e) {
+            fail(e.getMessage());
+        }
     }
 
     /**
@@ -498,6 +552,7 @@ public abstract class Bindings {
 
     /**
      * Binding to double click element
+     * JS is used for clicking instead of actions due to problems with some JS pages
      *
      * @param we webElement to click
      */
@@ -505,9 +560,10 @@ public abstract class Bindings {
         if (SessionPrototype.getClient().equals(Client.IE)) {
             executeJS("arguments[0].fireEvent('ondblclick');", we);
         } else {
-            executeJS("var evt = document.createEvent('MouseEvents');evt.initMouseEvent(" +
-                    "'dblclick',true, true, window, 0, 0, 0, 0, 0, false, false, false, false, 0,null);" +
-                    "arguments[0].dispatchEvent(evt);", we);
+            String javaScript = "var evt = document.createEvent('MouseEvents');" +
+                    "evt.initMouseEvent('dblclick', true, true, window, 0, 0, 0, 0, 0, false, false, false, false, 0, null);" +
+                    "arguments[0].dispatchEvent(evt);";
+            executeJS(javaScript, we);
         }
     }
 
@@ -533,14 +589,16 @@ public abstract class Bindings {
     /**
      * Binding to clear text field and enter text
      *
-     * @param we    webElement to type to
-     * @param value value to type into the field
-     * @param clear true to clear the field first; false to enter text without clearing field
+     * @param we              webElement to type to
+     * @param value           value to type into the field
+     * @param clearFieldFirst true to clear the field first; false to enter text without clearing field
      * @return webElement with edited text
      */
-    protected WebElement typeKeys(final WebElement we, final String value, final boolean clear) {
+    protected WebElement typeKeys(final WebElement we, final String value, final boolean clearFieldFirst) {
+        if (clearFieldFirst) {
+            clearField(we);
+        }
         try {
-            if (clear) we.clear();
             we.sendKeys(value);
         } catch (Exception e) {
             fail(e.getMessage());
@@ -583,6 +641,31 @@ public abstract class Bindings {
     }
 
     /**
+     * Binding to clear an input field
+     *
+     * @param locator locator of an input field to clear
+     * @return webElement of the input field
+     */
+    protected WebElement clearField(final String locator) {
+        return clearField(getElement(locator));
+    }
+
+    /**
+     * Binding to clear an input field
+     *
+     * @param we webElement of an input field to clear
+     * @return webElement of the input field
+     */
+    protected WebElement clearField(final WebElement we) {
+        try {
+            we.clear();
+        } catch (Exception e) {
+            fail(e.getMessage());
+        }
+        return we;
+    }
+
+    /**
      * Binding to type keys into field which needs to be clicked for edit mode
      *
      * @param clickLocator locator of element to click for edit
@@ -604,20 +687,7 @@ public abstract class Bindings {
      */
     protected void clickToType(final String clickLocator, final String typeLocator, final String value, int timeOut) {
         click(clickLocator, timeOut);
-        typeKeys(typeLocator, value, timeOut).sendKeys(Keys.TAB);
-    }
-
-    /**
-     * Binding to type keys into field which needs to be clicked for edit mode.
-     * Fills actual value and presses "TAB" to submit, otherwise value could be not saved
-     *
-     * @param combinedLocator Both getLocators (click and input) are passed as single String using ||| separator
-     * @param value           value to type
-     */
-    protected void clickToType(final String combinedLocator, final String value) {
-        String clickLocator = combinedLocator.substring(0, combinedLocator.indexOf("|||"));
-        String typeLocator = combinedLocator.substring(combinedLocator.indexOf("|||") + 3);
-        clickToType(clickLocator, typeLocator, value);
+        pressTab(typeKeys(typeLocator, value, timeOut));
     }
 
     /**
@@ -642,20 +712,7 @@ public abstract class Bindings {
      */
     protected void doubleClickToType(final String clickLocator, final String typeLocator, final String value, int timeOut) {
         doubleClick(clickLocator, timeOut);
-        typeKeys(typeLocator, value, pauseS).sendKeys(Keys.TAB);
-    }
-
-    /**
-     * Binding to type keys into field which needs to be clicked twice for edit mode.
-     * Fills actual value and presses "TAB" to submit, otherwise value could be not saved
-     *
-     * @param combinedLocator Both getLocators (click and input) are passed as single String using ||| separator
-     * @param value           value to type
-     */
-    protected void doubleClickToType(final String combinedLocator, final String value) {
-        String clickLocator = combinedLocator.substring(0, combinedLocator.indexOf("|||"));
-        String typeLocator = combinedLocator.substring(combinedLocator.indexOf("|||") + 1);
-        doubleClickToType(clickLocator, typeLocator, value);
+        pressTab(typeKeys(typeLocator, value, timeOut));
     }
 
     /**
@@ -667,21 +724,21 @@ public abstract class Bindings {
     protected void doubleClickToCheck(final String clickLocator, final String checkBoxLocator) {
         doubleClick(clickLocator);
         check(checkBoxLocator);
-        getElement(checkBoxLocator).sendKeys(Keys.TAB);
+        pressTab(checkBoxLocator);
     }
 
     /**
      * Binding to select item in dropdown which needs to be clicked for edit mode.
      * Fills actual value and presses "TAB" to submit, otherwise value could be not saved
      *
-     * @param clickE        webElement of the field to click
+     * @param clickLocator  webElement of the field to click
      * @param selectLocator locator of the dropdown
      * @param value         value to select
      */
-    protected void clickToSelect(final WebElement clickE, final String selectLocator, final String value) {
-        click(clickE);
+    protected void clickToSelect(final WebElement clickLocator, final String selectLocator, final String value) {
+        click(clickLocator);
         selectDropDown(selectLocator, value);
-        getElement(selectLocator).sendKeys(Keys.TAB);
+        pressTab(selectLocator);
     }
 
     /**
@@ -708,20 +765,7 @@ public abstract class Bindings {
     protected void clickToSelect(final String clickLocator, final String selectLocator, final String value, int timeOut) {
         click(clickLocator, timeOut);
         selectDropDown(selectLocator, value);
-        getElement(selectLocator).sendKeys(Keys.TAB);
-    }
-
-    /**
-     * Binding to select item in dropdown which needs to be clicked for edit mode.
-     * Both getLocators are passed as single String using ||| separator
-     *
-     * @param combinedLocator both getLocators (to click and select) are passed as single String using ||| separator
-     * @param value           value to select
-     */
-    protected void clickToSelect(final String combinedLocator, final String value) {
-        String clickLocator = combinedLocator.substring(0, combinedLocator.indexOf("|||"));
-        String selectLocator = combinedLocator.substring(combinedLocator.indexOf("|||") + 1);
-        clickToSelect(clickLocator, selectLocator, value);
+        pressTab(selectLocator);
     }
 
     /**
@@ -735,33 +779,21 @@ public abstract class Bindings {
     protected void clickToSelect(final String clickLocator, final String selectLocator, final Integer value) {
         doubleClick(clickLocator);
         selectDropDown(selectLocator, value);
-        getElement(selectLocator).sendKeys(Keys.TAB);
-    }
-
-    /**
-     * Binding to select value in the dropdown by index which needs to be clicked for edit mode
-     *
-     * @param combinedLocator both getLocators (to click and select) are passed as single String using ||| separator
-     * @param value           value to select
-     */
-    protected void clickToSelect(final String combinedLocator, final Integer value) {
-        String clickLocator = combinedLocator.substring(0, combinedLocator.indexOf("|||"));
-        String selectLocator = combinedLocator.substring(combinedLocator.indexOf("|||") + 1);
-        clickToSelect(clickLocator, selectLocator, value);
+        pressTab(selectLocator);
     }
 
     /**
      * Binding to select item in dropdown which needs to be clicked twice for edit mode after waiting.
      * Fills actual value and presses "TAB" to submit, otherwise value could be not saved
      *
-     * @param clickE        webElement of the field to click
+     * @param clickLocator  webElement of the field to click
      * @param selectLocator locator of the dropdown
      * @param value         value to select
      */
-    protected void doubleClickToSelect(final WebElement clickE, final String selectLocator, final String value) {
-        doubleClick(clickE);
+    protected void doubleClickToSelect(final WebElement clickLocator, final String selectLocator, final String value) {
+        doubleClick(clickLocator);
         selectDropDown(selectLocator, value);
-        getElement(selectLocator).sendKeys(Keys.TAB);
+        pressTab(selectLocator);
     }
 
     /**
@@ -777,30 +809,16 @@ public abstract class Bindings {
     }
 
     /**
-     * Binding to select item in dropdown which needs to be clicked twice for edit mode after waiting.
-     * Fills actual value and presses "TAB" to submit, otherwise value could be not saved
-     *
-     * @param combinedLocator both getLocators (to click and select) are passed as single String using ||| separator
-     * @param value           value to select
-     */
-    protected void doubleClickToSelect(final String combinedLocator, final String value) {
-        String clickLocator = combinedLocator.substring(0, combinedLocator.indexOf("|||"));
-        String selectLocator = combinedLocator.substring(combinedLocator.indexOf("|||") + 1);
-        doubleClickToSelect(clickLocator, selectLocator, value);
-    }
-
-    /**
      * Binding to select value from dropdown which needs to be clicked twice for edit mode.
-     * Fills actual value and presses "TAB" to submit, otherwise value could be not saved
      *
-     * @param clickE        webElement of the field to click
+     * @param clickLocator  webElement of the field to click
      * @param selectLocator locator of the dropdown
-     * @param value         index of the item in dropdown to select (starts from 0)
+     * @param optionIndex   index of the item in dropdown to select (starts from 0)
      */
-    protected void doubleClickToSelect(final WebElement clickE, final String selectLocator, final Integer value) {
-        doubleClick(clickE);
-        selectDropDown(selectLocator, value);
-        getElement(selectLocator).sendKeys(Keys.TAB);
+    protected void doubleClickToSelect(final WebElement clickLocator, final String selectLocator, final Integer optionIndex) {
+        doubleClick(clickLocator);
+        selectDropDown(selectLocator, optionIndex);
+        pressTab(selectLocator);
     }
 
     /**
@@ -816,85 +834,82 @@ public abstract class Bindings {
     }
 
     /**
-     * Binding to select value from dropdown which needs to be clicked twice for edit mode.
-     * Fills actual value and presses "TAB" to submit, otherwise value could be not saved
-     *
-     * @param combinedLocator both getLocators (to click and select) are passed as single String using ||| separator
-     * @param value           index of the item in dropdown to select (starts from 0)
-     */
-    protected void doubleClickToSelect(final String combinedLocator, final Integer value) {
-        String clickLocator = combinedLocator.substring(0, combinedLocator.indexOf("|||"));
-        String selectLocator = combinedLocator.substring(combinedLocator.indexOf("|||") + 1);
-        doubleClickToSelect(clickLocator, selectLocator, value);
-    }
-
-    /**
      * Drag and drop. Drags departure element to destination and releases.
      *
      * @param fromElement WebElement to drag
      * @param toElement   destination to drag. Releases LMB once over this item.
      */
     protected void dragAndDrop(final WebElement fromElement, final WebElement toElement) {
-        new Actions(getDriverInstance())
-                .clickAndHold(fromElement)
-                .moveToElement(toElement)
-                .release(toElement)
-                .build().perform();
+        try {
+            new Actions(getDriverInstance())
+                    .clickAndHold(fromElement)
+                    .moveToElement(toElement)
+                    .release(toElement)
+                    .build().perform();
+        } catch (Exception e) {
+            fail(e.getMessage());
+        }
     }
 
     /**
-     * Drag and drop. Drags departure element to destination with offset and releases.
+     * Drags departure element to destination with offset and releases
      *
-     * @param fromElement WebElement to drag
-     * @param toElement   destination to drag. Releases LMB once over this item.
+     * @param locatorFrom locator of element to drag
+     * @param locatorTo   destination to drag to. Releases LMB once over this item
      * @param xOffset     horizontal offset from destination
      * @param yOffset     vertical offset from destination
      */
-    protected void dragAndDrop(final String fromElement, final String toElement,
+    protected void dragAndDrop(final String locatorFrom, final String locatorTo,
                                final Integer xOffset, final Integer yOffset) {
-        WebElement departure = getElement(fromElement);
-        WebElement destination = getElement(toElement);
-        new Actions(getDriverInstance())
-                .clickAndHold(departure)
-                .moveToElement(destination, xOffset, yOffset)
-                .moveByOffset(xOffset, yOffset)
-                .click().release().build().perform();
+
+        WebElement departure = getElement(locatorFrom);
+        WebElement destination = getElement(locatorTo);
+
+        try {
+            new Actions(getDriverInstance())
+                    .clickAndHold(departure)
+                    .moveToElement(destination, xOffset, yOffset)
+                    .moveByOffset(xOffset, yOffset)
+                    .click().release().build().perform();
+        } catch (Exception e) {
+            fail(e.getMessage());
+        }
     }
 
     /**
-     * Drag and drop. Drags departure element to destination and releases.
+     * Drags departure element to destination and releases
      *
-     * @param departure   locator of element to drag
-     * @param destination locator of element to drag to. Releases LMB once over this item.
+     * @param locatorFrom locator of element to drag
+     * @param locatorTo   locator of element to drag to. Releases LMB once over this item.
      */
-    protected void dragAndDrop(final String departure, final String destination) {
-        dragAndDrop(getElement(departure), getElement(destination));
+    protected void dragAndDrop(final String locatorFrom, final String locatorTo) {
+        dragAndDrop(getElement(locatorFrom), getElement(locatorTo));
     }
 
     /**
-     * Drag and drop. Drags departure element to destination and releases.
+     * Drags departure element to destination and releases
      *
-     * @param departure   locator of element to drag
-     * @param destination locator of element to drag to. Releases LMB once over this item.
+     * @param locatorFrom locator of element to drag
+     * @param locatorTo   locator of element to drag to. Releases LMB once over this item
      * @param timeOut     time to wait for first element to appear in sec
      */
-    protected void dragAndDrop(final String departure, final String destination, int timeOut) {
-        dragAndDrop(waitForElement(departure, timeOut), getElement(destination));
+    protected void dragAndDrop(final String locatorFrom, final String locatorTo, int timeOut) {
+        dragAndDrop(waitForElement(locatorFrom, timeOut), getElement(locatorTo));
     }
 
     /**
-     * Scrolls to the element on a page, e.g. in JS table
+     * Scrolls to the element on a page
      *
-     * @param focusLocator xpath to the element
+     * @param focusLocator element to focus on
      */
     protected WebElement focusOnElement(final String focusLocator) {
         return focusOnElement(focusLocator, 0);
     }
 
     /**
-     * Scrolls to the element on a page, e.g. in JS table
+     * Scrolls to the element on a page
      *
-     * @param focusLocator xpath to the element
+     * @param focusLocator element to focus on
      * @param timeout      time to wait for element to be present on the page before scroll
      */
     protected WebElement focusOnElement(final String focusLocator, final int timeout) {
@@ -909,8 +924,14 @@ public abstract class Bindings {
         return focusTarget;
     }
 
-    protected void focusClick(final String focusLocator, final int timeout) {
-        WebElement focusTarget = waitForElement(focusLocator, timeout, true);
+    /**
+     * Scrolls to the element on a page and clicks
+     *
+     * @param locator element to focus on and click
+     * @param timeout time to wait for element to be present on the page before scroll
+     */
+    protected void focusAndClick(final String locator, final int timeout) {
+        WebElement focusTarget = waitForElement(locator, timeout, true);
         try {
             new Actions(getDriverInstance())
                     .moveToElement(focusTarget)
@@ -924,10 +945,23 @@ public abstract class Bindings {
     /**
      * Presses Tab button
      *
-     * @param locator start position, from where will be initiated Tab button action
+     * @param locator locator of an element to receive the event
      */
     protected void pressTab(final String locator) {
-        getElement(locator).sendKeys(Keys.TAB);
+        pressTab(getElement(locator));
+    }
+
+    /**
+     * Presses Tab button
+     *
+     * @param we element to receive the event
+     */
+    protected void pressTab(final WebElement we) {
+        try {
+            we.sendKeys(Keys.TAB);
+        } catch (Exception e) {
+            fail(e.getMessage());
+        }
     }
 
     /**
@@ -936,13 +970,17 @@ public abstract class Bindings {
      * @param we webElement one of the input fields or Submit button
      */
     protected void submitForm(final WebElement we) {
-        we.submit();
+        try {
+            we.submit();
+        } catch (Exception e) {
+            fail(e.getMessage());
+        }
     }
 
     /**
      * Binding to submit form
      *
-     * @param locator locator of Element - one of the input fields or Submit button
+     * @param locator locator of one of the input fields in the form or Submit button
      */
     protected void submitForm(final String locator) {
         submitForm(getElement(locator));
@@ -963,24 +1001,28 @@ public abstract class Bindings {
      *
      * @param locator locator of element to scroll to
      */
-    protected WebElement scrollToElement(String locator) {
-        WebElement el = getElement(locator);
-        Point coordinates = el.getLocation();
-        scroll(coordinates.x, coordinates.y);
-        return el;
+    protected WebElement scrollToElement(final String locator) {
+        WebElement we = getElement(locator);
+        try {
+            Point coordinates = we.getLocation();
+            scroll(coordinates.x, coordinates.y);
+        } catch (Exception e) {
+            fail(e.getMessage());
+        }
+        return we;
     }
 
     /**
      * Returns text of element
      *
-     * @param we webelement with text
+     * @param we webElement with text
      * @return text of webElement
      */
     protected String getText(final WebElement we) {
         try {
             return we.getText();
         } catch (Exception e) {
-            error("Unable to locate element to get text! " + e.getMessage());
+            error("Unable to to get text from the element! " + e.getMessage());
             return "";
         }
     }
@@ -1007,7 +1049,7 @@ public abstract class Bindings {
     }
 
     /**
-     * Returns text of all elements
+     * Returns list of texts from the list of web elements
      *
      * @param webElements list of web elements with text
      * @return list with text of all web elements
@@ -1018,8 +1060,8 @@ public abstract class Bindings {
             webElements.forEach(e -> texts.add(getText(e)));
             return texts;
         } catch (Exception e) {
-            error("Unable to locate element to get text! " + e.getMessage());
-            return null;
+            error("Unable to locate element to get text!\n" + e.getMessage());
+            throw e;
         }
     }
 
@@ -1051,7 +1093,12 @@ public abstract class Bindings {
      * @return selected option value
      */
     protected String getDropDownValue(final WebElement we) {
-        return getSelect(we).getFirstSelectedOption().getText();
+        try {
+            return getSelect(we).getFirstSelectedOption().getText();
+        } catch (Exception e) {
+            fail(e.getMessage());
+            throw e;
+        }
     }
 
     /**
@@ -1065,24 +1112,35 @@ public abstract class Bindings {
     }
 
     /**
-     * Returns list of values in dropdown
+     * Returns list of all values in the dropdown list
      *
-     * @param locator locator of dropdown
-     * @return List of values in dropdown
+     * @param locator locator of the dropdown
+     * @return list of values in dropdown
      */
     protected List<String> getDropDownValues(final String locator) {
-        return getSelect(locator).getOptions().stream().map(this::getText).collect(Collectors.toList());
+        try {
+            return getSelect(locator).getOptions().stream()
+                    .map(this::getText).collect(Collectors.toList());
+        } catch (Exception e) {
+            fail(e.getMessage());
+            throw e;
+        }
     }
 
     /**
      * Returns specified attribute value of element
      *
-     * @param we        webelement to access
+     * @param we        web element to access
      * @param attribute attribute to return
      * @return attribute value of element
      */
     protected String getAttr(final WebElement we, final String attribute) {
-        return we.getAttribute(attribute);
+        try {
+            return we.getAttribute(attribute);
+        } catch (Exception e) {
+            fail(e.getMessage());
+            throw e;
+        }
     }
 
     /**
@@ -1100,8 +1158,8 @@ public abstract class Bindings {
      * @param we webElement of checkbox to check
      */
     protected void check(final WebElement we) {
-        if (!we.isSelected()) {
-            we.click();
+        if (!isSelected(we)) {
+            click(we);
         }
     }
 
@@ -1134,20 +1192,13 @@ public abstract class Bindings {
     }
 
     /**
-     * Unchecks absolutely all checkboxes on the page (with attribute type='checkbox')
-     */
-    protected void unCheckAll() {
-        unCheckAll("xpath=.//*[@type='checkbox']");
-    }
-
-    /**
      * Binding to uncheck checkbox
      *
      * @param we WebElement of checkbox to uncheck
      */
     protected void unCheck(final WebElement we) {
-        if (we.isSelected()) {
-            we.click();
+        if (isSelected(we)) {
+            click(we);
         }
     }
 
@@ -1171,15 +1222,47 @@ public abstract class Bindings {
     }
 
     /**
+     * Check if checkbox or radiobutton is marked as selected
+     *
+     * @param locator locator of checkbox or radiobutton to test
+     */
+    protected boolean isSelected(final String locator) {
+        return isSelected(getElement(locator));
+    }
+
+    /**
+     * Check if checkbox or radiobutton is marked as selected
+     *
+     * @param we web element of checkbox or radiobutton to test
+     */
+    protected boolean isSelected(final WebElement we) {
+        try {
+            return we.isSelected();
+        } catch (Exception e) {
+            fail(e.getMessage());
+            return false;
+        }
+    }
+
+    /**
      * Binding to select item in dropdown by value
      *
      * @param we     WebElement of the dropdown
      * @param option value to select in the dropdown
      */
     protected void selectDropDown(final WebElement we, final String option) {
-        Select sel = getSelect(we);
+        selectDropDown(getSelect(we), option);
+    }
+
+    /**
+     * Binding to select item in dropdown by value
+     *
+     * @param select dropdown
+     * @param option value to select in the dropdown
+     */
+    protected void selectDropDown(final Select select, final String option) {
         try {
-            sel.selectByVisibleText(option);
+            select.selectByVisibleText(option);
         } catch (Exception e) {
             fail(e.getMessage());
         }
@@ -1202,8 +1285,7 @@ public abstract class Bindings {
      * @param option  value to select in the dropdown
      */
     protected void selectDropDown(final String locator, final String option, int timeOut) {
-        WebElement select = waitForElement(locator, timeOut);
-        selectDropDown(select, option);
+        selectDropDown(waitForElement(locator, timeOut), option);
     }
 
     /**
@@ -1213,9 +1295,18 @@ public abstract class Bindings {
      * @param index integer index of the element to select (starts from 0)
      */
     protected void selectDropDown(final WebElement we, final Integer index) {
-        Select sel = getSelect(we);
+        selectDropDown(getSelect(we), index);
+    }
+
+    /**
+     * Binding to select single item in dropdown by index
+     *
+     * @param select select object of the dropdown
+     * @param index  integer index of the element to select (starts from 0)
+     */
+    protected void selectDropDown(final Select select, final Integer index) {
         try {
-            sel.selectByIndex(index);
+            select.selectByIndex(index);
         } catch (Exception e) {
             fail(e.getMessage());
         }
@@ -1237,10 +1328,13 @@ public abstract class Bindings {
      * @param we      WebElement of the multi-select
      * @param options array of options to select
      */
-    protected void selectMultiDropDown(final WebElement we, final String[] options) {
+    protected void selectMultiDropDown(final WebElement we, final List<String> options) {
         Select select = getSelect(we);
-        select.deselectAll();
-        for (String item : options) select.selectByVisibleText(item);
+        deselectMultiDropDownAll(select);
+
+        for (String item : options) {
+            selectDropDown(select, item);
+        }
     }
 
     /**
@@ -1249,7 +1343,7 @@ public abstract class Bindings {
      * @param locator locator of dropdown
      * @param options array of options to select
      */
-    protected void selectMultiDropDown(final String locator, final String[] options) {
+    protected void selectMultiDropDown(final String locator, final List<String> options) {
         selectMultiDropDown(getElement(locator), options);
     }
 
@@ -1259,14 +1353,13 @@ public abstract class Bindings {
      * @param we      WebElement to access dropdown
      * @param indexes array of indexes of options to select
      */
-    protected void selectMultiDropDown(final WebElement we, final Integer[] indexes) {
+    protected void selectMultiDropDown(final WebElement we, final Integer... indexes) {
         Select select = getSelect(we);
-        try {
-            select.deselectAll();
-        } catch (java.lang.UnsupportedOperationException ignored) {
-        }
+        deselectMultiDropDownAll(select);
 
-        for (Integer item : indexes) select.selectByIndex(item);
+        for (Integer index : indexes) {
+            selectDropDown(select, index);
+        }
     }
 
     /**
@@ -1275,7 +1368,7 @@ public abstract class Bindings {
      * @param locator locator of the multi-select
      * @param indexes array of indexes of options to select
      */
-    protected void selectMultiDropDown(final String locator, final Integer[] indexes) {
+    protected void selectMultiDropDown(final String locator, final Integer... indexes) {
         selectMultiDropDown(getElement(locator), indexes);
     }
 
@@ -1286,9 +1379,11 @@ public abstract class Bindings {
      */
     protected void selectMultiDropDownAll(final WebElement we) {
         Select select = getSelect(we);
-        select.deselectAll();
-        for (int i = 0; i < select.getOptions().size(); i++)
-            select.selectByIndex(i);
+        deselectMultiDropDownAll(select);
+
+        for (int i = 0; i < select.getOptions().size(); i++) {
+            selectDropDown(select, i);
+        }
     }
 
     /**
@@ -1306,7 +1401,21 @@ public abstract class Bindings {
      * @param we webelement of the multi-select
      */
     protected void deselectMultiDropDownAll(final WebElement we) {
-        getSelect(we).deselectAll();
+        deselectMultiDropDownAll(getSelect(we));
+    }
+
+    /**
+     * Binding to deselect all items in multi-select dropdown
+     *
+     * @param select select object of the multi-select
+     */
+    protected void deselectMultiDropDownAll(final Select select) {
+        try {
+            select.deselectAll();
+        } catch (java.lang.UnsupportedOperationException ignored) {
+        } catch (Exception e) {
+            fail(e.getMessage());
+        }
     }
 
     /**
@@ -1325,7 +1434,11 @@ public abstract class Bindings {
      * @param index index of option to deselect
      */
     protected void deselectMultiDropDown(final WebElement we, final Integer index) {
-        getSelect(we).deselectByIndex(index);
+        try {
+            getSelect(we).deselectByIndex(index);
+        } catch (Exception e) {
+            fail(e.getMessage());
+        }
     }
 
     /**
@@ -1345,7 +1458,11 @@ public abstract class Bindings {
      * @param option option to deselect
      */
     protected void deselectMultiDropDown(final WebElement we, final String option) {
-        getSelect(we).deselectByVisibleText(option);
+        try {
+            getSelect(we).deselectByVisibleText(option);
+        } catch (Exception e) {
+            fail(e.getMessage());
+        }
     }
 
     /**
@@ -1361,18 +1478,19 @@ public abstract class Bindings {
     /**
      * Wait for visibility/presence of element
      *
-     * @param locator    locator of element to wait for
-     * @param timeOut    time to wait for element
-     * @param notVisible element expected to be visible/present. true=present; false=visible
+     * @param locator   locator of element to wait for
+     * @param timeOut   time to wait for element
+     * @param isPresent element expected to be visible/present. true=present; false=visible
      * @return returns webElement object on success
      */
-    protected WebElement waitForElement(final String locator, int timeOut, boolean notVisible) {
+    protected WebElement waitForElement(final String locator, int timeOut, boolean isPresent) {
         try {
             WebDriverWait wait = new WebDriverWait(getDriverInstance(), timeOut);
-            if (notVisible) wait.until(
-                    ExpectedConditions.presenceOfElementLocated(byLocator(locator)));
-            else wait.until(
-                    ExpectedConditions.visibilityOfElementLocated(byLocator(locator)));
+            if (isPresent) {
+                wait.until(ExpectedConditions.presenceOfElementLocated(byLocator(locator)));
+            } else {
+                wait.until(ExpectedConditions.visibilityOfElementLocated(byLocator(locator)));
+            }
         } catch (Exception e) {
             fail(e.getMessage());
         }
@@ -1462,8 +1580,8 @@ public abstract class Bindings {
      */
     protected void waitForElementNotPresent(final String locator, int timeOut) {
         try {
-            WebDriverWait wait = new WebDriverWait(getDriverInstance(), timeOut);
-            wait.until(ExpectedConditions.not(ExpectedConditions.visibilityOfElementLocated(byLocator(locator))));
+            new WebDriverWait(getDriverInstance(), timeOut)
+                    .until(ExpectedConditions.not(ExpectedConditions.visibilityOfElementLocated(byLocator(locator))));
         } catch (Exception e) {
             //If NoSuchElementException, element is not present, goal achieved. Otherwise throw exception
             if (e.getCause() == null ||
@@ -1503,37 +1621,10 @@ public abstract class Bindings {
      */
     protected boolean isAlertPresent(int timeOut) {
         try {
-            WebDriverWait wait = new WebDriverWait(getDriverInstance(), timeOut);
-            wait.until(ExpectedConditions.alertIsPresent());
+            new WebDriverWait(getDriverInstance(), timeOut)
+                    .until(ExpectedConditions.alertIsPresent());
             return true;
         } catch (Exception e) {
-            return false;
-        }
-    }
-
-    /**
-     * Waits until there is more window handles than in initial state
-     *
-     * @param windowHandles handles to all current windows
-     * @param timeOut       approximate time to wait for window
-     * @return false if window didn't appear within specified time; true otherwise
-     */
-    protected boolean waitForWindow(final Set<String> windowHandles, Integer timeOut) {
-        try {
-            Set<String> newWindowHandles = windowHandles;
-            Long time = System.currentTimeMillis() / 1000;
-            while (windowHandles.containsAll(newWindowHandles)) {
-                Long currentTime = System.currentTimeMillis() / 1000;
-                if ((currentTime - time) > timeOut) {
-                    error("New window won't appear after waiting for " + timeOut + " sec(s)");
-                    return false;
-                }
-                sleep(1);
-                newWindowHandles = getCurrentWindowsHandles();
-            }
-            return true;
-        } catch (Exception e) {
-            fail(e.getMessage());
             return false;
         }
     }
@@ -1541,7 +1632,7 @@ public abstract class Bindings {
     /**
      * Verifies whether element is displayed
      *
-     * @param we webelement to verify
+     * @param we webElement to verify
      * @return true if present; false otherwise
      */
     protected boolean isElementPresent(final WebElement we) {
@@ -1559,92 +1650,9 @@ public abstract class Bindings {
      * @return true if present; false otherwise
      */
     protected boolean isElementPresent(final String locator) {
-        try {
-            return isElementPresent(getElement(locator, false));
-        } catch (Exception e) {
-            return false;
-        }
+        return isElementPresent(getElement(locator, false));
     }
 
-    /**
-     * Returns window handle
-     *
-     * @return current window handle
-     */
-    protected String getCurrentWindowHandle() {
-        return getDriverInstance().getWindowHandle();
-    }
-
-    /**
-     * Returns all windows handles
-     *
-     * @return all windows handles currently accessible by webdriver instance
-     */
-    protected Set<String> getCurrentWindowsHandles() {
-        return getDriverInstance().getWindowHandles();
-    }
-
-    /**
-     * Switches to window with specified handle
-     *
-     * @param windowHandle handle of the window to switch to
-     */
-    protected String switchToWindow(String windowHandle) {
-        getDriverInstance().switchTo().window(windowHandle);
-        return windowHandle;
-    }
-
-    /**
-     * Determines and switches to first window that is present in {@code newWindows}
-     * and not present in  {@code oldWindows}
-     *
-     * @param oldWindows Windows that were already opened
-     * @param newWindows currently opened windows
-     */
-    protected String switchToNewWindow(Set<String> oldWindows, Set<String> newWindows) {
-        Set<String> openedWindows = Sets.difference(newWindows, oldWindows);
-        return switchToWindow(openedWindows.iterator().next());
-    }
-
-    /**
-     * Determines and switches to first window that is present
-     * in list of currently opened windows and not present in  {@code oldWindows}
-     *
-     * @param oldWindows Windows that were already opened
-     */
-    protected String switchToNewWindow(Set<String> oldWindows) {
-        if (waitForWindow(oldWindows, pauseL))
-            return switchToNewWindow(oldWindows, getCurrentWindowsHandles());
-        else {
-            fail("Unable to locate new window after waiting for " + pauseL + " sec(s)");
-            return getCurrentWindowHandle();
-        }
-    }
-
-    /**
-     * Determines and switches to first window that is present
-     * in list of currently opened windows and not present in  {@code oldWindows}
-     *
-     * @param oldWindow Window that was already opened
-     */
-    protected String switchToNewWindow(String oldWindow) {
-        return switchToNewWindow(new HashSet<>(Collections.singletonList(oldWindow)));
-    }
-
-    /**
-     * Close all windows except that with provided handle
-     *
-     * @param exceptHandle handle to window to leave opened
-     */
-    protected String closeWindows(String exceptHandle) {
-        Set<String> windows = getCurrentWindowsHandles();
-        windows.remove(exceptHandle);
-        for (String window : windows) {
-            switchToWindow(window);
-            getDriverInstance().close();
-        }
-        return switchToWindow(exceptHandle);
-    }
 
     /**
      * Pause test for <pause> seconds
@@ -1671,7 +1679,7 @@ public abstract class Bindings {
      * @param timeOut time to wait for element to be present
      * @return true if present
      */
-    protected boolean verifyElementPresent(String locator, String message, int timeOut) {
+    protected boolean verifyElementPresent(final String locator, String message, int timeOut) {
         boolean result = false;
         try {
             result = assertElementPresent(locator, message, timeOut);
@@ -1688,7 +1696,7 @@ public abstract class Bindings {
      * @param message error message to log, if element is not present
      * @return true if present
      */
-    protected boolean verifyElementPresent(String locator, String message) {
+    protected boolean verifyElementPresent(final String locator, String message) {
         return verifyElementPresent(locator, message, 0);
     }
 
@@ -1700,8 +1708,10 @@ public abstract class Bindings {
      * @param timeOut time in seconds to wait for the element to be present
      * @return true if present
      */
-    protected boolean assertElementPresent(String locator, String message, int timeOut) {
-        boolean result = timeOut > 0 ? waitForElementPresent(locator, timeOut) : isElementPresent(locator);
+    protected boolean assertElementPresent(final String locator, String message, int timeOut) {
+        boolean result = timeOut > 0 ?
+                waitForElementPresent(locator, timeOut) :
+                isElementPresent(locator);
         if (!result) {
             fail(String.format("%s\nElement: %s is not present on the page after %s sec(s)\n\n", message, locator, timeOut));
         }
@@ -1715,7 +1725,7 @@ public abstract class Bindings {
      * @param message error message to log, if element is not present
      * @return true if present
      */
-    protected boolean assertElementPresent(String locator, String message) {
+    protected boolean assertElementPresent(final String locator, String message) {
         return assertElementPresent(locator, message, 0);
     }
 
@@ -1727,7 +1737,7 @@ public abstract class Bindings {
      * @param timeOut time to wait for element to disappear
      * @return true if not present
      */
-    protected boolean verifyElementNotPresent(String locator, String message, int timeOut) {
+    protected boolean verifyElementNotPresent(final String locator, String message, int timeOut) {
         try {
             waitForElementNotPresent(locator, timeOut);
             return true;
@@ -2114,9 +2124,10 @@ public abstract class Bindings {
     }
 
     private String addSessionInfo(String message) {
-        return message.contains("Session info:") ? message :
-                String.format("%s\n\n********\nSession info:\nThread ID: %s\nUser: %s\n********\n\n",
-                        message, Thread.currentThread().getId(), session.getUser());
+        String errMsgTemplate = "%s\n\n********\nSession info:\nThread ID: %s\nUser: %s\n********\n\n";
+        return message.contains("Session info:") ?
+                message :
+                String.format(errMsgTemplate, message, Thread.currentThread().getId(), session.getUser());
     }
 
 }

@@ -8,7 +8,7 @@ import test.java.framework.SessionPrototype;
 import java.util.HashMap;
 
 /**
- * Wrappers for webDriver/appium methods applicable for mobile devices only
+ * Wrappers for webDriver/Appium methods applicable for mobile apps only
  */
 public abstract class MobileBindings extends Bindings {
 
@@ -45,12 +45,12 @@ public abstract class MobileBindings extends Bindings {
             return getDriverInstance().getOrientation();
         } catch (Exception e) {
             fail("Unable to get device orientation! " + e.getMessage());
-            return null;
+            throw e;
         }
     }
 
     /**
-     * Taps on the screen at specified location
+     * Taps on the screen at the specified location
      *
      * @param x horizontal element position
      * @param y vertical element position
@@ -72,21 +72,29 @@ public abstract class MobileBindings extends Bindings {
         scrollObject.put("text", text);
         scrollObject.put("direction", "down");
         scrollObject.put("element", element);
-        getDriverInstance().executeScript("mobile: scrollTo", scrollObject);
+        try {
+            getDriverInstance().executeScript("mobile: scrollTo", scrollObject);
+        } catch (Exception e) {
+            fail(e.getMessage());
+        }
     }
 
     protected void scrollMobileElement(String el) {
         HashMap<String, String> scrollObj = new HashMap<>();
         scrollObj.put("element", el);
         scrollObj.put("direction", "up");
-        getDriverInstance().executeScript("mobile: scroll", scrollObj);
+        try {
+            getDriverInstance().executeScript("mobile: scroll", scrollObj);
+        } catch (Exception e) {
+            fail(e.getMessage());
+        }
     }
 
     protected void swipe(final int startX, final int startY, final int endX, final int endY, final int duration) {
         try {
             getDriverInstance().swipe(startX, startY, endX, endY, duration);
         } catch (Exception e) {
-            fail("Swiping failed" + e.getMessage());
+            fail("Swiping failed!\n" + e.getMessage());
         }
     }
 
@@ -97,7 +105,11 @@ public abstract class MobileBindings extends Bindings {
      */
     protected void goBack() {
         String sourceBefore = getSource();
-        getDriverInstance().navigate().back();
+        try {
+            getDriverInstance().navigate().back();
+        } catch (Exception e) {
+            fail(e.getMessage());
+        }
         String sourceAfter = getSource();
         if (sourceBefore.equals(sourceAfter)) {
             goBack();
@@ -105,23 +117,45 @@ public abstract class MobileBindings extends Bindings {
     }
 
     protected void launchApp() {
-        getDriverInstance().launchApp();
+        try {
+            getDriverInstance().launchApp();
+        } catch (Exception e) {
+            fail(e.getMessage());
+        }
     }
 
     protected void closeApp() {
-        getDriverInstance().closeApp();
+        try {
+            getDriverInstance().closeApp();
+        } catch (Exception e) {
+            fail(e.getMessage());
+        }
     }
 
     protected void resetApp() {
-        getDriverInstance().resetApp();
+        try {
+            getDriverInstance().resetApp();
+        } catch (Exception e) {
+            fail(e.getMessage());
+        }
     }
 
     protected int getScreenWidth() {
-        return getDriverInstance().manage().window().getSize().getWidth();
+        try {
+            return getDriverInstance().manage().window().getSize().getWidth();
+        } catch (Exception e) {
+            fail(e.getMessage());
+            throw e;
+        }
     }
 
     protected int getScreenHeight() {
-        return getDriverInstance().manage().window().getSize().getHeight();
+        try {
+            return getDriverInstance().manage().window().getSize().getHeight();
+        } catch (Exception e) {
+            fail(e.getMessage());
+            throw e;
+        }
     }
 
     protected void tap(final String locator) {
@@ -135,22 +169,31 @@ public abstract class MobileBindings extends Bindings {
         }
     }
 
-    protected void clearText(String el) {
-        getElement(el).clear();
-    }
-
     protected void switchToWebView() {
-        getDriverInstance().context("WEBVIEW_com.carmudi.android.debug.release");
-
+        try {
+            getDriverInstance().context(getWebView());
+        } catch (Exception e) {
+            fail(e.getMessage());
+        }
     }
+
+    protected abstract String getWebView();
 
     protected void switchToNativeView() {
-        getDriverInstance().context("NATIVE_APP");
-
+        try {
+            getDriverInstance().context("NATIVE_APP");
+        } catch (Exception e) {
+            fail(e.getMessage());
+        }
     }
 
     protected String getCurrentContext() {
-        return getDriverInstance().getContext();
+        try {
+            return getDriverInstance().getContext();
+        } catch (Exception e) {
+            fail(e.getMessage());
+            throw e;
+        }
     }
 
     public void scrollScreenTillElementNotPresent(String control) {

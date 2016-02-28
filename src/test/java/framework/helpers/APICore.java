@@ -323,7 +323,8 @@ public abstract class APICore extends Bindings {
     /**
      * hack for HTTPS on all pages for BD
      *
-     * @param partUrl part url after domain name or full url if does not belong to carmudi
+     * @param partUrl part url after domain name OR
+     *                full url if does not belong to domain of AUT specified in {@link #addDomainToURL(String)}
      * @return fully qualified url to send API request to
      */
     protected String prepareRequestUrl(String partUrl) {
