@@ -27,6 +27,7 @@ public abstract class APICore extends Bindings {
 
     private ExtractableResponse<Response> lastResponse = null;
     private String lastRequest = null;
+    private RequestMethod lastRequestMethod = null;
     private Map<String, String> lastRequestParams = null;
     private String phpSessionId = null;
     private static String sessionKey = "session.id";
@@ -56,10 +57,11 @@ public abstract class APICore extends Bindings {
      * @param url    request url
      * @param params request parameters
      */
-    protected void updateLastRequest(String url, Map<String, String> params) {
+    protected void updateLastRequest(String url, Map<String, String> params, RequestMethod requestMethod) {
         lastResponse = null;
         lastRequest = url;
         lastRequestParams = params;
+        lastRequestMethod = requestMethod;
     }
 
     /**
@@ -152,7 +154,7 @@ public abstract class APICore extends Bindings {
      * @param url fully qualified URL
      */
     protected void sendGetRequest(String url) {
-        updateLastRequest(url, new HashMap<>());
+        updateLastRequest(url, new HashMap<>(), RequestMethod.GET);
         try {
             lastResponse = get(url);
             verifyLastStatusCode(200);
@@ -168,7 +170,7 @@ public abstract class APICore extends Bindings {
      * @param params options to post
      */
     protected void sendGetRequest(String url, Map<String, String> params) {
-        updateLastRequest(url, params);
+        updateLastRequest(url, params, RequestMethod.GET);
         try {
             lastResponse = get(url, params);
             verifyLastStatusCode(200);
@@ -184,7 +186,7 @@ public abstract class APICore extends Bindings {
      * @param params options to post
      */
     protected void sendPostRequest(String url, Map<String, String> params) {
-        updateLastRequest(url, params);
+        updateLastRequest(url, params, RequestMethod.POST);
         try {
             lastResponse = post(url, params);
             verifyLastStatusCode(200);
@@ -202,7 +204,7 @@ public abstract class APICore extends Bindings {
      * @param fileParams files to post
      */
     protected void sendPostRequest(String url, Map<String, String> params, Map<String, File> fileParams) {
-        updateLastRequest(url, params);
+        updateLastRequest(url, params, RequestMethod.POST);
         try {
             lastResponse = post(url, params, fileParams);
             verifyLastStatusCode(200);
@@ -217,30 +219,7 @@ public abstract class APICore extends Bindings {
     }
 
     /**
-     * Checks last response for the provided response code
-     *
-     * @param status expected status code
-     */
-    public void verifyLastStatusCode(int status) {
-
-        if (lastResponse == null) {
-            fail("API request was not sent or response is not saved", false);
-        }
-
-        int actualStatus = lastResponse.statusCode();
-        if (actualStatus != status) {
-            String body = "Response body is not available\n";
-            try {
-                body = lastResponse.body().jsonPath().prettify();
-            } catch (Throwable e) {
-                body = body.concat(e.getMessage());
-            }
-            fail(String.format("Status code is not %s: %s\n\n%s", status, actualStatus, body), false);
-        }
-    }
-
-    /**
-     * Sends GET API request to Alice server
+     * Sends GET API request
      *
      * @param url API_URL endpoint (without domain name)
      */
@@ -250,19 +229,19 @@ public abstract class APICore extends Bindings {
     }
 
     /**
-     * Sends GET API request to Alice server
+     * Sends GET API request
      *
      * @param url    API_URL endpoint (without domain name)
      * @param params options to post
      */
     public void sendGetAPIRequest(String url, Map<String, String> params) {
-        updateLastRequest(url, params);
+        updateLastRequest(url, params, RequestMethod.GET);
         String request = prepareRequestUrl(url);
         sendGetRequest(request, params);
     }
 
     /**
-     * Sends GET API request to Alice server
+     * Sends GET API request
      *
      * @param url    API_URL endpoint (without domain name)
      * @param params options to post
@@ -273,32 +252,32 @@ public abstract class APICore extends Bindings {
     }
 
     /**
-     * Sends POST API request to Alice server
+     * Sends POST API request
      *
      * @param url    API_URL endpoint (without domain name)
      * @param params options to post
      */
     public void sendPostAPIRequest(String url, Map<String, String> params) {
-        updateLastRequest(url, params);
+        updateLastRequest(url, params, RequestMethod.POST);
         String request = prepareRequestUrl(url);
         sendPostRequest(request, params);
     }
 
     /**
-     * Sends POST API request to Alice server
+     * Sends POST API request
      *
      * @param url        API_URL endpoint (without domain name)
      * @param params     options to post
      * @param fileParams files to post
      */
     public void sendPostAPIRequest(String url, Map<String, String> params, Map<String, File> fileParams) {
-        updateLastRequest(url, params);
+        updateLastRequest(url, params, RequestMethod.POST);
         String request = prepareRequestUrl(url);
         sendPostRequest(request, params, fileParams);
     }
 
     /**
-     * Sends POST API request to Alice server
+     * Sends POST API request
      *
      * @param url        API_URL endpoint (without domain name)
      * @param params     options to post
@@ -310,7 +289,7 @@ public abstract class APICore extends Bindings {
     }
 
     /**
-     * Sends POST API request to Alice server
+     * Sends POST API request
      *
      * @param url    API_URL endpoint (without domain name)
      * @param params options to post
@@ -321,7 +300,7 @@ public abstract class APICore extends Bindings {
     }
 
     /**
-     * hack for HTTPS on all pages for BD
+     * Construcst absolute URL if relative was provided
      *
      * @param partUrl part url after domain name OR
      *                full url if does not belong to domain of AUT specified in {@link #addDomainToURL(String)}
@@ -337,10 +316,16 @@ public abstract class APICore extends Bindings {
         return fullUrl;
     }
 
+    /**
+     * Adds protocol (e.g. HTTP://) and main domain of AUT, e.g. example.com
+     * to send API request to in case sendPost... was used with partial URL, e.g. (/example/endpoint/)
+     *
+     * @param partUrl relative URL, e.g. /example/endpoint/
+     * @return absolute URL, e.g. https://www.example.com/example/endpoint/
+     */
     protected abstract String addDomainToURL(String partUrl);
 
     protected Map<String, String> prepareSessionParameters(Map<String, String> params) {
-
         Map<String, String> paramsToSend = new HashMap<>();
         paramsToSend.putAll(params);
 
@@ -394,9 +379,32 @@ public abstract class APICore extends Bindings {
     }
 
     /**
+     * Checks last response for the provided response code
+     *
+     * @param expectedStatus expected status code
+     */
+    public void verifyLastStatusCode(int expectedStatus) {
+
+        if (lastResponse == null) {
+            fail("API request was not sent or response is not saved", false);
+        }
+        int actualStatus = lastResponse.statusCode();
+        if (actualStatus != expectedStatus) {
+            String body = "Response body is not available\n";
+            try {
+                body = lastResponse.body().jsonPath().prettify();
+            } catch (Throwable e) {
+                body = body.concat(e.getMessage());
+            }
+            fail(String.format("Status code is not %s: %s\n\n%s", expectedStatus, actualStatus, body), false);
+        }
+    }
+
+    /**
      * Verifies last API response
      *
-     * @param toCompare data to compare
+     * @param toCompare Key-value pairs to verify against.
+     *                  Keys - path to JSON node in API response. Values - expected results.
      */
     public void verifyLastResponse(Map<String, String> toCompare) {
         if (lastResponse == null) {
@@ -462,9 +470,17 @@ public abstract class APICore extends Bindings {
         return values;
     }
 
+    /**
+     * Process exception on reading API response and show all required information about the request method, sent data etc.
+     *
+     * @param exception exception that occurred while reading/processing response
+     * @param key       accessing this key triggered the exception
+     * @return error message to show in report
+     */
     protected String handleResponseException(Throwable exception, String key) {
 
-        String errMsg = String.format("Original request: %s\nParameters: %s", lastRequest, lastRequestParams);
+        String msgTemplate = "Original request: %s\nRequest method: %s\nParameters: %s";
+        String errMsg = String.format(msgTemplate, lastRequest, lastRequestMethod.name(), lastRequestParams);
         String finalMsg;
 
         if (exception instanceof SoftAssertionError) {
