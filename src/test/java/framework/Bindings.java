@@ -1650,9 +1650,12 @@ public abstract class Bindings {
      * @return true if present; false otherwise
      */
     protected boolean isElementPresent(final String locator) {
-        return isElementPresent(getElement(locator, false));
+        try {
+            return isElementPresent(getElement(locator, false));
+        } catch (Exception e) {
+            return false;
+        }
     }
-
 
     /**
      * Pause test for <pause> seconds
