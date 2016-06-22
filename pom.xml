@@ -9,7 +9,7 @@
     <version>0.8</version>
     <packaging>jar</packaging>
 
-    <name>Rocky</name>
+    <name>Rocky1</name>
     <url>https://jitpack.io/#roman-grytsay/cucumber-rocky/0.8</url>
 
     <properties>
